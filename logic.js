@@ -1,7 +1,3 @@
-// Define arrays to hold created city and state markers
-var earthquakesArray = [];
-var fautlLinesArray = [];
-
 // URL for earthquakes
 var link = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson';
 
@@ -14,11 +10,23 @@ d3.json(link, function(data) {
 function createFeatures(earthquakeData){
 	var earthquakes = L.geoJSON(earthquakeData, {
 	    pointToLayer: function (feature, latlng) {
-	        return L.circleMarker([feature.geometry.coordinates[1],feature.geometry.coordinates[0]],{
-				  fillOpacity: 0.75,
-				  color: "purple",
-				  fillColor: "red",
-				  radius: feature.properties.mag * 5 
+	    	//change the color according to magnitude
+	    	function color(){
+		    	if(feature.properties.mag <= 3){
+		    		return "green";
+		    	}else if(feature.properties.mag > 3 && feature.properties.mag <= 5.5){
+		    		return "yellow";
+		    	}else{
+		    		return "red";
+		    	};
+	    	}
+	    	//Return our data as a circle marker which adjusts according to the magnitude
+	        return L.circleMarker([feature.geometry.coordinates[1],feature.geometry.coordinates[0]],
+	        {
+				  fillOpacity: 0.50,
+				  color: color(),
+				  fillColor: color(),
+				  radius: feature.properties.mag * 3
 	        });
 	    }
 	});
@@ -54,7 +62,7 @@ function createMap(earthquakes){
 	// Define a map object
 	var myMap = L.map("map", {
 	  center: [37.09, -95.71],
-	  zoom: 5,
+	  zoom: 4,
 	  layers: [streetmap, earthquakes]
 	});
 
