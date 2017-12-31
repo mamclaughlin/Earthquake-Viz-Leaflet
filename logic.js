@@ -1,13 +1,18 @@
 // URL for earthquakes
 var link = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson';
 
-// Grabbing our GeoJSON data..
-d3.json(link, function(data) {
-	// // Creating a GeoJSON layer with the retrieved data
-	createFeatures(data.features);
+// Grabbing our GeoJSON data for earthquakes..
+d3.json(link, function(earthquake_data) {
+	//Grabbing data from tectonic plate information after first api call completed
+	var tectLink = "https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json"
+	d3.json(tectLink, function(tect_data){
+		//Now that we have our data, create the features with both arguments
+		createFeatures(earthquake_data.features, tect_data.features);
+	});
 });
 
-function createFeatures(earthquakeData){
+//create features for tectonic plate lines and for earthquakes
+function createFeatures(earthquakeData, faultData){
 	var earthquakes = L.geoJSON(earthquakeData, {
 	    pointToLayer: function (feature, latlng) {
 	    	//change the color according to magnitude
@@ -31,10 +36,46 @@ function createFeatures(earthquakeData){
 	    }
 	});
 
-	createMap(earthquakes);
+	var faultLines =  L.geoJson(faultData, {
+	    // Style each feature 
+	    style: function(feature) {
+	      return {
+	        color: "white",
+	        // Call the chooseColor function to decide which color to color our neighborhood (color based on borough)
+	        fillColor: "black",
+	        fillOpacity: 0.5,
+	        weight: 1.5
+	      };
+	    },
+	    // Called on each feature
+	    onEachFeature: function(feature, layer) {
+	      // Set mouse events to change map styling
+	      layer.on({
+	        // When a user's mouse touches a map feature, the mouseover event calls this function, that feature's opacity changes to 90% so that it stands out
+	        mouseover: function(event) {
+	          layer = event.target;
+	          layer.setStyle({
+	            fillOpacity: 0.9
+	          });
+	        },
+	        // When the cursor no longer hovers over a map feature - when the mouseout event occurs - the feature's opacity reverts back to 50%
+	        mouseout: function(event) {
+	          layer = event.target;
+	          layer.setStyle({
+	            fillOpacity: 0.5
+	          });
+	        },
+
+	      });
+
+	    }//end on each feature
+	});
+
+	createMap(earthquakes,faultLines);
 }
 
-function createMap(earthquakes){
+function createMap(earthquakes,faultLines){
+
 	// Define variables for our base layers
 	var streetmap = L.tileLayer(
 	  "https://api.mapbox.com/styles/v1/mapbox/outdoors-v10/tiles/256/{z}/{x}/{y}?" +
@@ -56,14 +97,15 @@ function createMap(earthquakes){
 	// Create an overlay object
 	var overlayMaps = {
 	  // "State Population": faults,
-	  "Earthquakes": earthquakes
+	  "Earthquakes": earthquakes,
+	  "Fault Lines": faultLines
 	};
-
+	
 	// Define a map object
 	var myMap = L.map("map", {
 	  center: [37.09, -95.71],
 	  zoom: 4,
-	  layers: [streetmap, earthquakes]
+	  layers: [streetmap, earthquakes, faultLines]
 	});
 
 	// Pass our map layers into our layer control
